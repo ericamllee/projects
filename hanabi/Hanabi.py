@@ -69,15 +69,15 @@ class Player(object):
           self.message_to_journal(game, message2)
         game.board.__repr__()
       else:
-        game.warnings -= 1
+        game.fuses -= 1
         
-        if game.warnings > 1:
-          message = self.name + " played a " + card.__repr__() + ", which cannot be placed on the board. You have " + str(game.warnings) + " more warnings."
+        if game.fuses > 1:
+          message = self.name + " played a " + card.__repr__() + ", which cannot be placed on the board. You have " + str(game.fuses) + " more fuses."
           self.message_to_journal(game, message)
-        elif game.warnings == 1: 
-          message = self.name + " played a " + card.__repr__() + ", which cannot be placed on the board. You have " + str(game.warnings) + " more warning."
+        elif game.fuses == 1: 
+          message = self.name + " played a " + card.__repr__() + ", which cannot be placed on the board. You have " + str(game.fuses) + " more fuse."
           self.message_to_journal(game, message)    
-        if game.warnings == 0:
+        if game.fuses == 0:
           print("The fireworks exploded in your face. You lose.")
           os._exit(1)
         game.board.add_to_discard_pile(self, game, card)
@@ -174,7 +174,7 @@ class Game(object):
     self.deck = Deck(colors, number)
     self.players = [Player(name) for name in names]
     self.hints = 8
-    self.warnings = 3
+    self.fuses = 3
     self.board = Board(colors)
     self.deal_cards()
     self.max_card = number
@@ -314,7 +314,7 @@ class Game(object):
         print(line) 
     print("\n" + self.board.__repr__())
     print("Hints available: " + str(self.hints))
-    print("Warnings left: " + str(self.warnings) + "\n")
+    print("Fuses left: " + str(self.fuses) + "\n")
     if self.board.no_more:
       print("There are no more " + str(self.board.no_more) + " cards. \n")
     if self.turns_left > 1:
@@ -333,4 +333,5 @@ class Game(object):
 #global memory. 
 #press enter to continue-->can't exit from there.
 #hints for locations look like a list.
+#limit number of players.
 
