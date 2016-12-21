@@ -23,6 +23,7 @@ class Deck(object):
         self.deck.append(Card(color, num))
       self.deck.append(Card(color, number))        
     shuffle(self.deck)
+
   def len(self):
     return len(self.deck)
 
@@ -32,8 +33,6 @@ class Deck(object):
   def deal(self):
     if self.deck:
       return self.deck.pop()
-    if len(self.deck) == 1: 
-      return "This is the last card. Each player has one more turn."
 
 class Player(object):
   def __init__(self, name):
