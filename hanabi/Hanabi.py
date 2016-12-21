@@ -50,7 +50,7 @@ class Player(object):
     return self.name + "'s hand is " + "[" + "] [".join(map(Card.__repr__, self.hand)) + "]"
 
   def play_card(self, game):
-      index = game.get_valid_integer('Which card do you want to play? ', list(range(0, len(self.hand))))
+      index = game.get_valid_integer('Which card do you want to play? ', range(0, len(self.hand)))
       card = self.hand[index]
       self.hand = [c for c in self.hand if c != card]
       self.hand.append(game.deck.deal())
@@ -66,29 +66,26 @@ class Player(object):
           game.hints += 1
           message2 = self.name + " completed the " + card.color + " firework."
           self.message_to_journal(game, message2)
-        game.board.__repr__()
+        
       else:
         game.fuses -= 1
         
-        if game.fuses > 1:
-          message = self.name + " played a " + card.__repr__() + ", which cannot be placed on the board. You have " + str(game.fuses) + " more fuses."
-          self.message_to_journal(game, message)
-        elif game.fuses == 1: 
-          message = self.name + " played a " + card.__repr__() + ", which cannot be placed on the board. You have " + str(game.fuses) + " more fuse."
-          self.message_to_journal(game, message)    
-        if game.fuses == 0:
+        if game.fuses > 0:
+          message = self.name + " played a " + card.__repr__() + ", which cannot be placed on the board. You have " + str(game.fuses) + " more fuse{0}".format("s." if game.fuses > 1 else ".")
+          self.message_to_journal(game, message)  
+        elif game.fuses == 0:
           print("The fireworks exploded in your face. You lose.")
           os._exit(1)
         game.board.add_to_discard_pile(self, game, card)
 
   def discard_card(self, game):
-    index = game.get_valid_integer('Which card do you want to discard? ', list(range(0, len(self.hand))))
+    index = game.get_valid_integer('Which card do you want to discard? ', range(0, len(self.hand)))
     card = self.hand[index]
-    self.hand = [c for c in self.hand if c != card]
+    self.hand = [c for c in self.hand if c != card]. #TODO: refactor with play_card
     self.hand.append(game.deck.deal())
     self.hints = min(game.hints + 1, game.max_hints)
 
-    message = self.name + " discarded a " + card.__repr__() + "."
+    message = "{0} discarded a {1}.".format(self.name, card.__repr__()). #TODO: fix all of these into a format string.
     self.message_to_journal(game, message)
 
     game.board.add_to_discard_pile(self, game, card)
@@ -97,7 +94,7 @@ class Player(object):
     receiving_player_name = game.get_valid_string('Which player would you like to give a hint to, ' + self.name + "? ", [x for x in game.player_names if x != self.name])
 
     receiving_player = game.get_player(receiving_player_name)
-    hint_is_a_number = None
+    hint_is_a_number = None. #TODO: Charles: This is some terrible shit.
     hint_is_a_name = None
 
     hint = game.get_valid_string("Type in a color or a number to tell " + receiving_player_name + " about their cards. ", game.colors + map(str, range(1, game.max_card + 1)))
@@ -108,9 +105,9 @@ class Player(object):
       hint_is_a_name = True 
     index = 0
     lst_of_cards = []
-    game.hints -= 1
+    game.hints -= 1. #TODO: stick this in a separate get_valid_string/int
 
-    if hint_is_a_number:
+    if hint_is_a_number: #TODO: change to type(hint)== int:
       for card in receiving_player.hand:
         if card.number == int(hint):
           lst_of_cards.append(index)
@@ -123,7 +120,7 @@ class Player(object):
         index += 1
 
     if len(lst_of_cards) > 1:
-      message = receiving_player.name + "'s cards in locations " + str(lst_of_cards) + " are " + str(hint) + "."
+      message = receiving_player.name + "'s cards in locations " + str(lst_of_cards) + " are " + str(hint) + "."  #TODO: merge 1st and third branch. change to .format()
     elif len(lst_of_cards) == 0:
       message = "There are no " + str(hint) + " cards in " + receiving_player.name + "'s hand."
     else:
@@ -135,7 +132,7 @@ class Player(object):
     print(message)
     for x in game.journal:
       if x != self.name:
-        game.journal[x].append(message)
+        game.journal[x].append(message). #TODO: add a global journal
 
 
   # def rearrange_cards(self, game):
@@ -147,24 +144,20 @@ class Board(object):
   def __init__(self, colors):
     self.displayed = {}
     self.important_discards = []
-    self.no_more = []
+    self.no_more = [] #TODO: rename.
     for color in colors:          
       self.displayed[color] = 0
   def __repr__(self):
     return "Board: " + " ".join(['[{} {}]'.format(k,v) for k,v in self.displayed.iteritems()])+ "\n" + "Discards: " + "[" + "] [".join(map(Card.__repr__, self.important_discards)) + "]"
 
   def add_to_discard_pile(self, person, game, card):
-    if card.number == 5:
-      self.no_more.append(card)
-      message = "There are no more " + card.__repr__() + "s available in the game. It is now impossible to complete the " + card.color + " firework."
-      person.message_to_journal(game, message)
     if card.number != 1 and game.board.displayed[card.color] < card.number:
-      for cards in game.board.important_discards:
-        if card.color == cards.color and card.number == cards.number:
+      for important_discard in game.board.important_discards:
+        if (card.color == important_discard.color and card.number == important_discard.number) or card.number == 5:
           message = "There are no more " + card.__repr__() + "s available in the game. It is now impossible to complete the " + card.color + " firework."
           self.no_more.append(card)
           person.message_to_journal(game, message)
-          self.important_discards = [x for x in self.important_discards if x != cards]
+          self.important_discards = [x for x in self.important_discards if x != important_discard] #TODO: Change to set. (add/remove) or use list(remove)
           return None
       self.important_discards.append(card)
 
@@ -172,7 +165,7 @@ class Game(object):
   def __init__(self, names, colors = ['red', 'green', 'blue', 'yellow', 'white'], number = 5):
     self.deck = Deck(colors, number)
     self.players = [Player(name) for name in names]
-    self.hints = 8
+    self.hints = 8     
     self.fuses = 3
     self.board = Board(colors)
     self.deal_cards()
@@ -333,4 +326,5 @@ class Game(object):
 #press enter to continue-->can't exit from there.
 #hints for locations look like a list.
 #limit number of players.
+#maybe add integer names.
 
