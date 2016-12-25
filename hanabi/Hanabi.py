@@ -2,7 +2,7 @@ from random import shuffle
 import sys
 import itertools
 import os
-from termcolor import colored
+from termcolor import *
 
 class Card(object):
   def __init__(self, color, num):
@@ -13,15 +13,15 @@ class Card(object):
     return colored(self.color + ' ' + str(self.number), self.color)
 
 class Deck(object):
-  def __init__(self, colors, number):
+  def __init__(self, game):
     self.deck = []
-    for color in colors:
+    for color in game.colors:
       for num in range(0, 3):
         self.deck.append(Card(color, 1))
-      for num in range(2, number):
+      for num in range(2, 5):
         self.deck.append(Card(color, num))
         self.deck.append(Card(color, num))
-      self.deck.append(Card(color, number))        
+      self.deck.append(Card(color, 5))        
     shuffle(self.deck)
 
   def len(self):
@@ -38,13 +38,13 @@ class Player(object):
   def __init__(self, name):
     self.name = name
     self.hand = []
-    self.visible_cards = []
-    try:
-      int(self.name)
-      print("Player names cannot be integers. Please try again.")
-      os._exit(1)
-    except ValueError:
-      return None
+    # self.visible_cards = []  ##TODO: Maybe make color and numbers visible after given a hint.
+    # try:
+    #   int(self.name)
+    #   print("Player names cannot be integers. Please try again.") #TODO: Figure this out. 
+    #   os._exit(1)
+    # except ValueError:
+    #   return None
 
   def __repr__(self):
     return self.name + "'s hand is " + "[" + "] [".join(map(Card.__repr__, self.hand)) + "]"
@@ -55,18 +55,20 @@ class Player(object):
       self.hand = [c for c in self.hand if c != card]
       self.hand.append(game.deck.deal())
 
-      if game.board.displayed[card.color] == card.number - 1:
-        game.board.displayed[card.color] = card.number
+      if game.board.displayed[card.color].number == card.number - 1:
+        game.board.displayed[card.color] = card
         message1 = self.name + " played a " + card.__repr__() + " on the board.\n" 
         self.message_to_journal(game, message1)
 
         game.board.important_discards = [x for x in game.board.important_discards if x.color != card.color or x.number >= card.number]
 
-        if card.number == game.max_card:
+        if card.number == 5:
+          if self.check_win(game):
+            print("\n Congratulations! You have set off all the fireworks.")
+            os._exit(1)
           game.hints += 1
           message2 = self.name + " completed the " + card.color + " firework."
           self.message_to_journal(game, message2)
-        
       else:
         game.fuses -= 1
         
@@ -79,13 +81,14 @@ class Player(object):
         game.board.add_to_discard_pile(self, game, card)
 
   def discard_card(self, game):
-    index = game.get_valid_integer('Which card do you want to discard? ', range(0, len(self.hand)))
+    index = game.get_valid_integer('Which card do you want to discard? Choose a number between 1 and ' + str(len(self.hand)) + '. 1 is your oldest card, and ' + str(len(self.hand)) + " is your newest card.", range(1, len(self.hand) + 1)) - 1
     card = self.hand[index]
-    self.hand = [c for c in self.hand if c != card]. #TODO: refactor with play_card
+    self.hand = [c for c in self.hand if c != card]
+    #TODO: refactor with play_card
     self.hand.append(game.deck.deal())
-    self.hints = min(game.hints + 1, game.max_hints)
+    game.hints = min(game.hints + 1, game.max_hints)
 
-    message = "{0} discarded a {1}.".format(self.name, card.__repr__()). #TODO: fix all of these into a format string.
+    message = "{0} discarded a {1}.".format(self.name, card.__repr__()) #TODO: fix all of these into a format string.
     self.message_to_journal(game, message)
 
     game.board.add_to_discard_pile(self, game, card)
@@ -94,10 +97,10 @@ class Player(object):
     receiving_player_name = game.get_valid_string('Which player would you like to give a hint to, ' + self.name + "? ", [x for x in game.player_names if x != self.name])
 
     receiving_player = game.get_player(receiving_player_name)
-    hint_is_a_number = None. #TODO: Charles: This is some terrible shit.
+    hint_is_a_number = None #TODO: Charles: This is some terrible shit.
     hint_is_a_name = None
 
-    hint = game.get_valid_string("Type in a color or a number to tell " + receiving_player_name + " about their cards. ", game.colors + map(str, range(1, game.max_card + 1)))
+    hint = game.get_valid_string("Type in a color or a number to tell " + receiving_player_name + " about their cards. ", game.colors + map(str, range(1, 6)))
     try:
       int(hint)
       hint_is_a_number = True 
@@ -105,7 +108,7 @@ class Player(object):
       hint_is_a_name = True 
     index = 0
     lst_of_cards = []
-    game.hints -= 1. #TODO: stick this in a separate get_valid_string/int
+    game.hints -= 1 #TODO: stick this in a separate get_valid_string/int
 
     if hint_is_a_number: #TODO: change to type(hint)== int:
       for card in receiving_player.hand:
@@ -132,7 +135,12 @@ class Player(object):
     print(message)
     for x in game.journal:
       if x != self.name:
-        game.journal[x].append(message). #TODO: add a global journal
+        game.journal[x].append(message) #TODO: add a global journal
+  def check_win(self, game):
+    for card in game.board.displayed.values():
+      if card.number < 5:
+        return False 
+    return True
 
 
   # def rearrange_cards(self, game):
@@ -142,16 +150,19 @@ class Player(object):
 
 class Board(object):
   def __init__(self, colors):
-    self.displayed = {}
+    self.displayed = {'red': Card('red', 0), 
+                      'green': Card('green', 0), 
+                      'blue': Card('blue', 0), 
+                      'yellow': Card('yellow', 0), 
+                      'white': Card('white', 0)}
     self.important_discards = []
     self.no_more = [] #TODO: rename.
-    for color in colors:          
-      self.displayed[color] = 0
+
   def __repr__(self):
-    return "Board: " + " ".join(['[{} {}]'.format(k,v) for k,v in self.displayed.iteritems()])+ "\n" + "Discards: " + "[" + "] [".join(map(Card.__repr__, self.important_discards)) + "]"
+    return "Board: " + "[" + "] [".join(map(Card.__repr__, self.displayed.values())) + "]"+ "\n" + "Discards: " + "[" + "] [".join(map(Card.__repr__, self.important_discards)) + "]"
 
   def add_to_discard_pile(self, person, game, card):
-    if card.number != 1 and game.board.displayed[card.color] < card.number:
+    if card.number != 1 and game.board.displayed[card.color].number < card.number:
       for important_discard in game.board.important_discards:
         if (card.color == important_discard.color and card.number == important_discard.number) or card.number == 5:
           message = "There are no more " + card.__repr__() + "s available in the game. It is now impossible to complete the " + card.color + " firework."
@@ -162,15 +173,15 @@ class Board(object):
       self.important_discards.append(card)
 
 class Game(object):
-  def __init__(self, names, colors = ['red', 'green', 'blue', 'yellow', 'white'], number = 5):
-    self.deck = Deck(colors, number)
-    self.players = [Player(name) for name in names]
+  def __init__(self, names):
+    self.colors = ['red', 'green', 'blue', 'yellow', 'white']
+    self.deck = Deck(self)
+    self.players = [Player(name) for name in names]  #player names must be strings.
     self.hints = 8     
-    self.fuses = 3
-    self.board = Board(colors)
-    self.deal_cards()
-    self.max_card = number
     self.max_hints = 8
+    self.fuses = 3
+    self.board = Board(self.colors)
+    self.deal_cards()
     self.turns_left = len(self.players) #after last card.
     self.generator = self.next_player()
     self.journal = {}
@@ -179,11 +190,14 @@ class Game(object):
       self.journal[player] = []
     self.next_player_names = {}
     self.make_next_player_names(self.player_names)
-    self.colors = colors
     self.current = self.generator.next()
     self.play()
 
-  def make_next_player_names(self, lst):
+    #get rid of other options for play?
+    #do I need so many init statements?
+    #limit number of players
+
+  def make_next_player_names(self, lst):  #There's probably a better way to do this. Combine with the next_player iterator
     g = iter(list(range(1, len(self.player_names))))
     for player in lst:
       try:
@@ -205,6 +219,7 @@ class Game(object):
       else:
         while len(each.hand) <= 4:  
           each.hand.append(self.deck.deal())
+
   def play(self):
     possible_actions = ['discard_card', 'play_card', 'give_hint']
     
@@ -223,37 +238,20 @@ class Game(object):
         action = self.get_valid_integer("\n" + self.current.name + ': \n  [0] Discard \n  [1] Place a card. \n  There are no more hints left. \n \n', [0,1])
 
       if self.hints > 0:
-        action = self.get_valid_integer("\n" + self.current.name + ': \n  [0] Discard \n  [1] Place a card \n  [2] Give a hint. \n \n', [0,1,2])
+        action = self.get_valid_integer("\n" + self.current.name + ': \n  [0] Discard \n  [1] Place a card \n  [2] Give a hint. \n \n', [0,1,2]) #Can you merge these two lines?
 
       getattr(self.current, possible_actions[action])(self)
+
       self.journal[self.current.name] = []
-
-      self.current = self.generator.next()
-      if self.check_win():
-        print("\n Congratulations! You have set off all the fireworks.")
-        os._exit(1)
+      self.current = self.generator.next() #end of turn/transition to next player.
       print("Your turn is over.")
-      try: 
-        input("Press Enter to continue...")
-      except SyntaxError:
-        pass
-      os.system('clear')
+      self.clear_screen()
       print("Pass the computer to " + self.current.name + ". Tell me when you're ready.")
-      try:
-        input("Press Enter to continue...")
-      except SyntaxError:
-        pass
+      self.clear_screen()
 
-
-    final_score = sum([value for key, value in self.board.displayed])
-    print("You need to learn how to set off fireworks. Your final score is " + str(final_score) + ".")
+    final_score = sum([card.number for card in self.board.displayed.values()])
+    print("Game over. Your final score is " + str(final_score) + ".")
     os._exit(1)
-
-  def check_win(self):
-    for color, value in self.board.displayed.iteritems():
-      if value < self.max_card:
-        return False
-    return True
 
   def next_player(self):
     iterated_players = self.players[:]
@@ -268,16 +266,10 @@ class Game(object):
         except (ValueError, NameError, SyntaxError, TypeError):
           if g == 'exit' or str(g) == 'exit':
             os._exit(1)
-          os.system('clear')
-          print("Sorry, your response must be " + ', '.join(map(str, valid_answers)) + "\n")
-          self.print_board()
+          self.invalid_answers(str(g), valid_answers)
           continue
-        if value == 'exit':
-          os._exit(1)
         if value not in valid_answers:
-          os.system('clear')
-          print("Sorry, your response must be " + ', '.join(map(str, valid_answers)) + "\n")
-          self.print_board()
+          self.invalid_answers(str(g), valid_answers)
           continue
         else:
           break
@@ -289,13 +281,17 @@ class Game(object):
         if value == 'exit':
           os._exit(1)
         if value not in valid_answers:
-            os.system('clear')
-            print("That is not a valid input. Please try: " + ', '.join(valid_answers) + "\n")
-            self.print_board()
+            self.invalid_answers(value, valid_answers)
             continue
         else:
             break
     return value
+
+  def invalid_answers(self, value, valid_answers):
+    os.system('clear')
+    self.print_board()
+    print("\n" + value + " is not a valid response. Please try: " + ', '.join(map(str, valid_answers)) + ".\n")
+    
 
   def print_board(self):
     other_players = [x for x in self.players if x != self.current]
@@ -308,11 +304,19 @@ class Game(object):
     print("Hints available: " + str(self.hints))
     print("Fuses left: " + str(self.fuses) + "\n")
     if self.board.no_more:
-      print("There are no more " + str(self.board.no_more) + " cards. \n")
+      print("There are no more " + str(self.board.no_more) + " cards. \n") #Change this to look like the rest of the cards.
     if self.turns_left > 1:
       print("The next player is " + self.next_player_names[self.current.name] + ".")
     for x in other_players:
       print(x.__repr__())
+  
+  def clear_screen(self):
+    try:
+      input("Press Enter to continue...")
+    except (SyntaxError, NameError):
+      os.system('clear')
+      pass
+
 
 # rearranging cards--offer at the same time as actions.
 #"press Enter to continue... " forces exit if you press anything else.
@@ -327,4 +331,5 @@ class Game(object):
 #hints for locations look like a list.
 #limit number of players.
 #maybe add integer names.
+# offer a way to go back? if you want to change your action.
 
