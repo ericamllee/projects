@@ -47,7 +47,7 @@ class Player(object):
       card_traits = self.hand[k-1].known_traits
       print_traits = ": " + ', '.join(card_traits)
 
-      cards.append("Card " + str(k) + '{0}'.format(print_traits if card_traits else ''))
+      cards.append("Card {0} {1}".format(k, print_traits if card_traits else ''))
       k += 1
     print("My cards: [" + "] [".join(cards) + "]")
 
@@ -137,7 +137,6 @@ class Player(object):
     message = self.name + " gave a hint: " + message
     self.message_to_journal(game, message)
 
-    #change card's known_traits
     for each_card in lst_of_cards:
       if str(hint) not in receiving_player.hand[each_card].known_traits:
             receiving_player.hand[each_card].known_traits.append(str(hint))
@@ -152,12 +151,6 @@ class Player(object):
       if card.number < 5:
         return False 
     return True
-
-
-  # def rearrange_cards(self, game):
-  #   new_order = lst(input('List the new order of your cards.'))
-  #   new_hand = [self.hand[f] for f in new_order]
-  #   self.hand = new_hand
 
 class Board(object):
   def __init__(self, colors):
@@ -260,10 +253,6 @@ class Game(object):
       if self.deck.len() == 0:
         self.turns_left -= 1
         print("\n There are no more cards to draw. This is your last turn.")
-
-      # rearranging = input("I would like to rearrange my cards. True or False? ")
-      # if rearranging: 
-      #   current.rearrange_cards(self)
       
       if self.hints == 0:
         action = self.get_valid_integer("\n" + self.current.name + ': \n  [0] Discard \n  [1] Place a card. \n  There are no more hints left. \n \n', [0,1])
@@ -345,10 +334,7 @@ class Game(object):
       os.system('clear')
       pass
 
-
-# rearranging cards--offer at the same time as actions. --maybe don't allow this. just show the given hint?
 # make prettier lists with good grammar.
-# fix instructions for discarding a card. make card values 1-5. explain that it shifts cards down. New cards are added in the 5th slot.
 #global memory??
 # offer a way to go back? if you want to change your action.
 # print other players' boards in order that they will play next.
