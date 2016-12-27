@@ -328,9 +328,10 @@ class Game(object):
     self.current.my_cards()
   
   def clear_screen(self):
-    try:
-      input("Press Enter to continue...")  #TODO: allow exit here.
-    except (SyntaxError, NameError):
+    g = raw_input("Press Enter to continue...")
+    if g == 'exit':
+      os._exit(1)
+    else:
       os.system('clear')
       pass
 
