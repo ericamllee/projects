@@ -49,7 +49,7 @@ class Player(object):
 
       cards.append("Card {0}{1}".format(k + 1, print_traits if card_traits else ''))
       k += 1
-    print("My cards: [{0}]".format("] [".join(cards) + "]"))
+    print("My cards: [{0}]\n".format("] [".join(cards) + "]"))
 
   def __repr__(self):
     return "{0}'s hand is [{1}]".format(self.name, "] [".join(map(Card.__repr__, self.hand)))
@@ -250,10 +250,10 @@ class Game(object):
         print("\n There are no more cards to draw. This is your last turn.")
       
       if self.hints == 0:
-        action = self.get_valid_string("\n{0}: \n  [1] Discard \n  [2] Place a card. \n  There are no more hints left. \n \n".format(self.current.name), ['1', '2'])
+        action = self.get_valid_string("\nPlayer {0}, choose an action: \n  [1] Discard \n  [2] Place a card. \n  There are no more hints left. \n \n".format(self.current.name), ['1', '2'])
 
       if self.hints > 0:
-        action = self.get_valid_string("\n{0}: \n  [1] Discard \n  [2] Place a card \n  [3] Give a hint. \n \n".format(self.current.name), ['1', '2' ,'3'])
+        action = self.get_valid_string("\nPlayer {0}, choose an action: \n  [1] Discard \n  [2] Place a card \n  [3] Give a hint. \n \n".format(self.current.name), ['1', '2' ,'3'])
 
       getattr(self.current, possible_actions[int(action)])(self)
 
@@ -287,8 +287,6 @@ class Game(object):
     
 
   def print_board(self):
-    other_players = [x for x in self.players if x != self.current]
-
     if self.journal[self.current.name]:
       print("\nSince you last played: ")
       for line in self.journal[self.current.name]:
@@ -298,11 +296,12 @@ class Game(object):
     print("Fuses left: {0}\n".format(str(self.fuses)))
     if self.board.no_more:
       print("There are no more [{0}] cards. \n".format("] [".join(map(Card.__repr__, self.board.no_more))))
-    if self.turns_left > 1:
-      print("The next player is {0}.".format(self.next_players[self.current.name].name))
-    for x in other_players:
-      print(x.__repr__())
+    
     self.current.my_cards()
+    other_player = self.next_players[self.current.name]
+    while other_player != self.current:
+      print(other_player.__repr__())
+      other_player = self.next_players[other_player.name]
   
   def clear_screen(self):
     g = raw_input("Press Enter to continue...")
@@ -315,10 +314,4 @@ class Game(object):
 # make prettier lists with good grammar.
 
 # offer a way to go back? if you want to change your action.
-
-# print other players' boards in order that they will play next.
-
-#change list to remove
-
-#Fix add to discard pile--> 5s
 
