@@ -45,7 +45,7 @@ class Player(object):
     cards = []
     while k < len(self.hand):
       card_traits = self.hand[k].known_traits
-      print_traits = ": " + ', '.join(card_traits)
+      print_traits = ": " + pretty_list_and(card_traits)
 
       cards.append("Card {0}{1}".format(k + 1, print_traits if card_traits else ''))
       k += 1
@@ -68,7 +68,7 @@ class Player(object):
       message1 = "{0} played a {1} on the board.\n".format(self.name, card.__repr__()) 
       self.message_to_journal(game, message1)
 
-      game.board.important_discards = [x for x in game.board.important_discards if x.color != card.color or x.number >= card.number]
+      game.board.important_discards = [x for x in game.board.important_discards if x.color != card.color or x.number > card.number]
 
       if card.number == 5:
         if self.check_win(game):
@@ -128,7 +128,7 @@ class Player(object):
       message = "{0}'s card{1} in location{1} {2} {3} {4}.".format(
         receiving_player_name, 
         's' if len(lst_of_cards) > 1 else '', 
-        ', '.join(map(str, lst_of_cards)), 
+        pretty_list_and(map(str, lst_of_cards)), 
         'is' if len(lst_of_cards) == 1 else 'are', 
         hint)
 
@@ -157,7 +157,7 @@ class Board(object):
                       'yellow': Card('yellow', 0), 
                       'white': Card('white', 0)}
     self.important_discards = []
-    self.no_more = [] #TODO: rename.
+    self.no_more = []
 
   def __repr__(self):
     return "Board: [{0}] \nDiscards: [{1}]".format("] [".join(map(Card.__repr__, self.displayed.values())), "] [".join(map(Card.__repr__, self.important_discards)))
@@ -185,7 +185,7 @@ class Game(object):
     self.fuses = 3
     self.board = Board(self.colors)
     self.deal_cards()
-    self.turns_left = len(self.players) #after last card.
+    self.turns_left = len(self.players)
 
     self.next_players = {}
     self.current = self.players[0] 
@@ -283,7 +283,7 @@ class Game(object):
   def invalid_answers(self, value, valid_answers):
     os.system('clear')
     self.print_board()
-    print("\n{0} is not a valid response. Please try: {1}.\n".format(value, ', '.join(map(str, valid_answers))))
+    print("\n{0} is not a valid response. Please try: {1}.\n".format(value, pretty_list_or(map(str, valid_answers))))
     
 
   def print_board(self):
@@ -311,7 +311,13 @@ class Game(object):
       os.system('clear')
       pass
 
-# make prettier lists with good grammar.
+
+def pretty_list_or(valid_answers):
+  return ", ".join(valid_answers[:-2] + [" or ".join(valid_answers[-2:])])
+
+def pretty_list_and(valid_answers):
+  return ", ".join(valid_answers[:-2] + [" and ".join(valid_answers[-2:])])
+
 
 # offer a way to go back? if you want to change your action.
 
