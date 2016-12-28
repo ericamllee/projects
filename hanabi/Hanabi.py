@@ -41,31 +41,31 @@ class Player(object):
     self.hand = []
 
   def my_cards(self):
-    k = 1
+    k = 0
     cards = []
-    while k <= len(self.hand):
-      card_traits = self.hand[k-1].known_traits
+    while k < len(self.hand):
+      card_traits = self.hand[k].known_traits
       print_traits = ": " + ', '.join(card_traits)
 
-      cards.append("Card {0} {1}".format(k, print_traits if card_traits else ''))
+      cards.append("Card {0}{1}".format(k + 1, print_traits if card_traits else ''))
       k += 1
-    print("My cards: [" + "] [".join(cards) + "]")
+    print("My cards: [{0}]".format("] [".join(cards) + "]"))
 
   def __repr__(self):
-    return self.name + "'s hand is " + "[" + "] [".join(map(Card.__repr__, self.hand)) + "]"
+    return "{0}'s hand is [{1}]".format(self.name, "] [".join(map(Card.__repr__, self.hand)))
 
   def draw_a_new_card(self, game, card):
-    self.hand = [c for c in self.hand if c != card]
+    self.hand.remove(card)
     self.hand.append(game.deck.deal())
 
   def play_card(self, game):
-    index = game.get_valid_integer('Which card do you want to play? Choose a card number between 1 and ' + str(len(self.hand)) + ". ", range(1, len(self.hand) + 1))
-    card = self.hand[index - 1]
+    index = game.get_valid_string('Which card do you want to play? Choose a card number between 1 and {0}.\n'.format(len(self.hand)), map(str, range(1, len(self.hand) + 1)))
+    card = self.hand[int(index) - 1]
     self.draw_a_new_card(game, card)
 
     if game.board.displayed[card.color].number == card.number - 1:
       game.board.displayed[card.color] = card
-      message1 = self.name + " played a " + card.__repr__() + " on the board.\n" 
+      message1 = "{0} played a {1} on the board.\n".format(self.name, card.__repr__()) 
       self.message_to_journal(game, message1)
 
       game.board.important_discards = [x for x in game.board.important_discards if x.color != card.color or x.number >= card.number]
@@ -75,13 +75,14 @@ class Player(object):
           print("\n Congratulations! You have set off all the fireworks.")
           os._exit(1)
         game.hints += 1
-        message2 = self.name + " completed the " + card.color + " firework."
+        message2 = "{0} completed the {1} firework.".format(self.name, card.color)
         self.message_to_journal(game, message2)
     else:
       game.fuses -= 1
       
       if game.fuses > 0:
-        message = self.name + " played a " + card.__repr__() + ", which cannot be placed on the board. You have " + str(game.fuses) + " more fuse{0}".format("s." if game.fuses > 1 else ".")
+        message = "{0} played a {1}, which cannot be placed on the board. You have {2} more fuse{3}".format(
+          self.name, card.__repr__(), str(game.fuses), "s." if game.fuses > 1 else ".")
         self.message_to_journal(game, message)  
       elif game.fuses == 0:
         print("The fireworks exploded in your face. You lose.")
@@ -89,63 +90,59 @@ class Player(object):
       game.board.add_to_discard_pile(self, game, card)
 
   def discard_card(self, game):
-    index = game.get_valid_integer('Which card do you want to discard? Choose a number between 1 and ' + str(len(self.hand)) + '. ', range(1, len(self.hand) + 1))
-    card = self.hand[index - 1]
+    index = game.get_valid_string('Which card do you want to discard? Choose a number between 1 and {0}.\n'.format(len(self.hand)), map(str, range(1, len(self.hand) + 1)))
+    card = self.hand[int(index) - 1]
     self.draw_a_new_card(game, card)
     game.hints = min(game.hints + 1, game.max_hints)
 
-    message = "{0} discarded a {1}.".format(self.name, card.__repr__()) #TODO: fix all of these into a format string.
+    message = "{0} discarded a {1}.".format(self.name, card.__repr__())
     self.message_to_journal(game, message)
 
     game.board.add_to_discard_pile(self, game, card)
 
   def give_hint(self, game):
-    receiving_player_name = game.get_valid_string('Which player would you like to give a hint to, ' + self.name + "? ", [x for x in game.player_names if x != self.name])
+    receiving_player_name = game.get_valid_string('Which player would you like to give a hint to, {0}?\n'.format(self.name), [x for x in game.player_names if x != self.name])
 
     receiving_player = game.get_player(receiving_player_name)
-    hint_is_a_number = None #TODO: Charles: This is some terrible shit.
-    hint_is_a_name = None
 
-    hint = game.get_valid_string("Type in a color or a number to tell " + receiving_player_name + " about their cards. ", game.colors + map(str, range(1, 6)))
-    try:
-      int(hint)
-      hint_is_a_number = True 
-    except ValueError:
-      hint_is_a_name = True 
-    index = 0
+    hint = game.get_valid_string("Type in a color or a number to tell {0} about their cards.\n".format(receiving_player_name), game.colors + map(str, range(1, 6)))
+
+    index = 1
     lst_of_cards = []
-    game.hints -= 1 #TODO: stick this in a separate get_valid_string/int
+    game.hints -= 1
 
-    if hint_is_a_number: #TODO: change to type(hint)== int:
+    if hint in game.colors:
+      for card in receiving_player.hand:
+        if card.color == hint:
+          lst_of_cards.append(index)
+        index += 1
+    else:
       for card in receiving_player.hand:
         if card.number == int(hint):
           lst_of_cards.append(index)
         index += 1
 
-    if hint_is_a_name:
-      for card in receiving_player.hand:
-        if card.color == hint:
-          lst_of_cards.append(index)
-        index += 1
-
-    if len(lst_of_cards) > 1:
-      message = receiving_player.name + "'s cards in locations " + ', '.join(map(str, lst_of_cards)) + " are " + str(hint) + "."  #TODO: merge 1st and third branch. change to .format()
-    elif len(lst_of_cards) == 0:
-      message = "There are no " + str(hint) + " cards in " + receiving_player.name + "'s hand."
+    if len(lst_of_cards) == 0:
+      message = "There are no {0} cards in {1}'s hand.".format(hint, receiving_player_name)
     else:
-      message = receiving_player.name + "'s card in location " + str(lst_of_cards[0]) + " is " + str(hint) + "."
-    message = self.name + " gave a hint: " + message
-    self.message_to_journal(game, message)
+      message = "{0}'s card{1} in location{1} {2} {3} {4}.".format(
+        receiving_player_name, 
+        's' if len(lst_of_cards) > 1 else '', 
+        ', '.join(map(str, lst_of_cards)), 
+        'is' if len(lst_of_cards) == 1 else 'are', 
+        hint)
+
+    self.message_to_journal(game, "{0} gave a hint: {1}".format(self.name, message))
 
     for each_card in lst_of_cards:
-      if str(hint) not in receiving_player.hand[each_card].known_traits:
-            receiving_player.hand[each_card].known_traits.append(str(hint))
+      if hint not in receiving_player.hand[each_card - 1].known_traits:
+            receiving_player.hand[each_card - 1].known_traits.append(hint)
 
   def message_to_journal(self, game, message):
     print(message)
     for x in game.journal:
       if x != self.name:
-        game.journal[x].append(message) #TODO: add a global journal?
+        game.journal[x].append(message)
   def check_win(self, game):
     for card in game.board.displayed.values():
       if card.number < 5:
@@ -163,16 +160,16 @@ class Board(object):
     self.no_more = [] #TODO: rename.
 
   def __repr__(self):
-    return "Board: " + "[" + "] [".join(map(Card.__repr__, self.displayed.values())) + "]"+ "\n" + "Discards: " + "[" + "] [".join(map(Card.__repr__, self.important_discards)) + "]"
+    return "Board: [{0}] \nDiscards: [{1}]".format("] [".join(map(Card.__repr__, self.displayed.values())), "] [".join(map(Card.__repr__, self.important_discards)))
 
   def add_to_discard_pile(self, person, game, card):
     if card.number != 1 and game.board.displayed[card.color].number < card.number:
       for important_discard in game.board.important_discards:
         if (card.color == important_discard.color and card.number == important_discard.number) or card.number == 5:
-          message = "There are no more " + card.__repr__() + "s available in the game. It is now impossible to complete the " + card.color + " firework."
+          message = "There are no more {0}s available in the game. It is now impossible to complete the {1} firework.".format(card.__repr__(), card.color)  
           self.no_more.append(card)
           person.message_to_journal(game, message)
-          self.important_discards = [x for x in self.important_discards if x != important_discard] #TODO: Change to set. (add/remove) or use list(remove)
+          self.important_discards.remove(important_discard)
           return None
       self.important_discards.append(card)
 
@@ -200,13 +197,11 @@ class Game(object):
 
     self.play()
 
-    #do I need so many init statements?
-
   def get_names(self):
     while True:
-      if len(self.player_names) >= 5:  #Should I do one at a time or ask for a list?
+      if len(self.player_names) >= 5:
         break
-      value = raw_input("Enter a player's name. If all player names have been entered, type done.")     
+      value = raw_input("Enter a player's name. If all player names have been entered, type done.\n")     
       if value == 'exit':
         os._exit(1)
       elif value == "done":
@@ -245,7 +240,7 @@ class Game(object):
           each.hand.append(self.deck.deal())
 
   def play(self):
-    possible_actions = ['discard_card', 'play_card', 'give_hint']
+    possible_actions = ['empty', 'discard_card', 'play_card', 'give_hint']
     
     while self.turns_left > 0:
       self.print_board()
@@ -255,41 +250,23 @@ class Game(object):
         print("\n There are no more cards to draw. This is your last turn.")
       
       if self.hints == 0:
-        action = self.get_valid_integer("\n" + self.current.name + ': \n  [0] Discard \n  [1] Place a card. \n  There are no more hints left. \n \n', [0,1])
+        action = self.get_valid_string("\n{0}: \n  [1] Discard \n  [2] Place a card. \n  There are no more hints left. \n \n".format(self.current.name), ['1', '2'])
 
       if self.hints > 0:
-        action = self.get_valid_integer("\n" + self.current.name + ': \n  [0] Discard \n  [1] Place a card \n  [2] Give a hint. \n \n', [0,1,2]) #Can you merge these two lines?
+        action = self.get_valid_string("\n{0}: \n  [1] Discard \n  [2] Place a card \n  [3] Give a hint. \n \n".format(self.current.name), ['1', '2' ,'3'])
 
-      getattr(self.current, possible_actions[action])(self)
+      getattr(self.current, possible_actions[int(action)])(self)
 
       self.journal[self.current.name] = []
       self.current = self.next_players[self.current.name]
       print("Your turn is over.")
       self.clear_screen()
-      print("Pass the computer to " + self.current.name + ". Tell me when you're ready.")
+      print("Pass the computer to {0}. Tell me when you're ready.".format(self.current.name))
       self.clear_screen()
 
     final_score = sum([card.number for card in self.board.displayed.values()])
-    print("Game over. Your final score is " + str(final_score) + ".")
+    print("Game over. Your final score is {0}.".format(final_score))
     os._exit(1)
-
-
-  def get_valid_integer(self, prompt, valid_answers):
-    while True:
-        try:
-          g = raw_input(prompt)
-          value = int(g)
-        except (ValueError, NameError, SyntaxError, TypeError):
-          if g == 'exit' or str(g) == 'exit':
-            os._exit(1)
-          self.invalid_answers(str(g), valid_answers)
-          continue
-        if value not in valid_answers:
-          self.invalid_answers(str(g), valid_answers)
-          continue
-        else:
-          break
-    return value
 
   def get_valid_string(self, prompt, valid_answers):
     while True:
@@ -306,23 +283,23 @@ class Game(object):
   def invalid_answers(self, value, valid_answers):
     os.system('clear')
     self.print_board()
-    print("\n" + value + " is not a valid response. Please try: " + ', '.join(map(str, valid_answers)) + ".\n")
+    print("\n{0} is not a valid response. Please try: {1}.\n".format(value, ', '.join(map(str, valid_answers))))
     
 
   def print_board(self):
     other_players = [x for x in self.players if x != self.current]
 
     if self.journal[self.current.name]:
-      print("\n" + "Since you last played: ")
+      print("\nSince you last played: ")
       for line in self.journal[self.current.name]:
         print(line) 
     print("\n" + self.board.__repr__())
     print("Hints available: " + str(self.hints))
-    print("Fuses left: " + str(self.fuses) + "\n")
+    print("Fuses left: {0}\n".format(str(self.fuses)))
     if self.board.no_more:
-      print("There are no more " + "[" + "] [".join(map(Card.__repr__, self.board.no_more)) + "] cards. \n")
+      print("There are no more [{0}] cards. \n".format("] [".join(map(Card.__repr__, self.board.no_more))))
     if self.turns_left > 1:
-      print("The next player is " + self.next_players[self.current.name].name + ".")
+      print("The next player is {0}.".format(self.next_players[self.current.name].name))
     for x in other_players:
       print(x.__repr__())
     self.current.my_cards()
@@ -336,7 +313,12 @@ class Game(object):
       pass
 
 # make prettier lists with good grammar.
-#global memory??
+
 # offer a way to go back? if you want to change your action.
+
 # print other players' boards in order that they will play next.
+
+#change list to remove
+
+#Fix add to discard pile--> 5s
 
