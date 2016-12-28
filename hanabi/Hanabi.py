@@ -45,7 +45,7 @@ class Player(object):
     cards = []
     while k < len(self.hand):
       card_traits = self.hand[k].known_traits
-      print_traits = ": " + pretty_list_and(card_traits)
+      print_traits = ": " + ", ".join(card_traits)
 
       cards.append("Card {0}{1}".format(k + 1, print_traits if card_traits else ''))
       k += 1
