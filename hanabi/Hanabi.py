@@ -253,7 +253,7 @@ class Game(object):
         action = self.get_valid_string("\nPlayer {0}, choose an action: \n  [1] Discard \n  [2] Place a card. \n  There are no more hints left. \n \n".format(self.current.name), ['1', '2'])
 
       if self.hints > 0:
-        action = self.get_valid_string("\nPlayer {0}, choose an action: \n  [1] Discard \n  [2] Place a card \n  [3] Give a hint. \n \n".format(self.current.name), ['1', '2' ,'3'])
+        action = self.get_valid_string("\n{0}, choose an action: \n  [1] Discard \n  [2] Place a card \n  [3] Give a hint. \n \n".format(self.current.name), ['1', '2' ,'3'])
 
       getattr(self.current, possible_actions[int(action)])(self)
 

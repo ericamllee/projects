@@ -13,7 +13,7 @@ To start the game, run
 
 on terminal
 
-and type `Game()`. The game will then start up on its own. This game only works on Macs.
+and type `Game()`. The game will then start up on its own. This game only works on Macs using Python2.
 
 [Rules](http://www.gezelschapsspel.info/sites/default/files/bijlages/Hanabi_Rules_Summary.pdf)
 
