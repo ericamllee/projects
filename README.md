@@ -19,8 +19,10 @@ and type `Game()`. The game will then start up on its own. This game only works 
 
 Type exit at any time to exit the game.
 
-[[Example hint](/give_hint.png?raw=true)]
+[Example hint](/give_hint.png?raw=true)
 
-[[Example discard] (/discard.png?raw=true)]
+[Example discard] (/discard.png?raw=true)
 
-[[Example play card] (/play_card.png?raw=true)]
+[Example play card] (/play_card.png?raw=true)
+
+![Example hint](https://raw.githubusercontent.com/ericamllee/projects/master/give_hint.png)
